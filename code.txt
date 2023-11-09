@@ -1,0 +1,92 @@
+# Lexical Analyzer
+import re
+
+def lexical_analyzer(input_code):
+    tokens = re.findall(r'\d+|\+|\-|\*|\/', input_code)
+    return tokens
+
+# Syntax Parser
+class SyntaxParser:
+    def __init__(self, tokens):
+        self.tokens = tokens
+        self.current_token = None
+
+    def parse(self):
+        self.current_token = self.get_next_token()
+        result = self.expr()
+        if self.current_token is not None:
+            raise SyntaxError("Unexpected token: {}".format(self.current_token))
+        return result
+
+    def get_next_token(self):
+        if self.tokens:
+            return self.tokens.pop(0)
+        return None
+
+    def expr(self):
+        term_result = self.term()
+
+        while self.current_token in ('+', '-'):
+            op = self.current_token
+            self.current_token = self.get_next_token()
+            term_result = self.apply_op(op, term_result, self.term())
+
+        return term_result
+
+    def term(self):
+        factor_result = self.factor()
+
+        while self.current_token in ('*', '/'):
+            op = self.current_token
+            self.current_token = self.get_next_token()
+            factor_result = self.apply_op(op, factor_result, self.factor())
+
+        return factor_result
+
+    def factor(self):
+        if self.current_token.isdigit():
+            result = int(self.current_token)
+            self.current_token = self.get_next_token()
+            return result
+        elif self.current_token == '+':
+            self.current_token = self.get_next_token()
+            return self.factor()
+        elif self.current_token == '-':
+            self.current_token = self.get_next_token()
+            return -self.factor()
+        elif self.current_token == '(':
+            self.current_token = self.get_next_token()
+            result = self.expr()
+            if self.current_token != ')':
+                raise SyntaxError("Expected ')' but got {}".format(self.current_token))
+            self.current_token = self.get_next_token()
+            return result
+        else:
+            raise SyntaxError("Unexpected token: {}".format(self.current_token))
+
+    def apply_op(self, op, left, right):
+        if op == '+':
+            return left + right
+        elif op == '-':
+            return left - right
+        elif op == '*':
+            return left * right
+        elif op == '/':
+            if right == 0:
+                raise ValueError("Division by zero")
+            return left / right
+
+# Code Generation
+class CodeGenerator:
+    def generate_code(self, result):
+        return "Result: {}".format(result)
+
+# Example Usage
+input_code = "3 + 5 * ( 2 - 8 )"
+tokens = lexical_analyzer(input_code)
+parser = SyntaxParser(tokens)
+result = parser.parse()
+
+code_generator = CodeGenerator()
+output_code = code_generator.generate_code(result)
+print(output_code)
